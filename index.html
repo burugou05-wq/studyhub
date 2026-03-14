@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyHub v1.0.0</title>
+<title>StudyHub v1.0.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -895,6 +895,74 @@
     cursor: pointer; transition: opacity 0.2s;
   }
   .tutorial-finish:hover { opacity: 0.85; }
+
+  /* ========== MOBILE ========== */
+  @media (max-width: 768px) {
+    /* Header: 2行構造 */
+    header {
+      flex-direction: column;
+      align-items: stretch;
+      padding: 10px 14px 6px !important;
+      gap: 6px !important;
+    }
+    header > div:first-child { justify-content: space-between; }
+    nav {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 4px;
+      gap: 2px;
+      justify-content: flex-start;
+    }
+    nav button { padding: 7px 10px; font-size: 12px; white-space: nowrap; }
+    header > div:last-child { gap: 6px !important; } /* ツールはそのまま */
+    .hide-mobile { display: none !important; }
+
+    /* Main padding */
+    main { padding: 14px; }
+
+    /* Dashboard: 2列 */
+    .dashboard-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .stat-num { font-size: 24px; }
+    .dashboard-bottom { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Calendar: 縦積み */
+    .calendar-grid { grid-template-columns: 1fr; gap: 14px; }
+
+    /* Materials: 縦積み */
+    .materials-layout { grid-template-columns: 1fr; }
+    .subject-list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
+    .subject-item { padding: 6px 10px; font-size: 13px; }
+    .material-cards { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+
+    /* Timer: 縦積み */
+    .timer-layout { grid-template-columns: 1fr; gap: 14px; }
+    .timer-part { font-size: 52px; }
+    .timer-colon { font-size: 52px; }
+    .timer-btn.primary { width: 58px; height: 58px; font-size: 20px; }
+
+    /* Tasks: 縦積み */
+    .tasks-layout { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Goals: 縦積み */
+    .goals-layout { grid-template-columns: 1fr; gap: 14px; }
+    .goal-add-row { flex-wrap: wrap; }
+    .goal-add-input[type=date] { width: 100% !important; }
+
+    /* Modal: フル幅 */
+    .modal { padding: 20px 16px; margin: 0 10px; }
+    .form-row { flex-direction: column; gap: 0; }
+
+    /* Snapshot panel */
+    #snapshot-panel { width: calc(100vw - 32px); right: 8px; }
+
+    /* Toolbar */
+    .toolbar { flex-wrap: wrap; gap: 8px; }
+    .search-input { width: 100%; }
+
+    /* Task status buttons */
+    .task-status-btns { gap: 4px; }
+    .task-status-btn { font-size: 10px; padding: 4px 0; }
+  }
 </style>
 </head>
 <body>
@@ -903,7 +971,7 @@
   <!-- 左：ロゴ -->
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
     <div class="logo">STUDY<span>HUB</span></div>
-    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.0.0</span>
+    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.0.1</span>
   </div>
   <!-- 中央：ナビ -->
   <nav>
@@ -916,7 +984,7 @@
   </nav>
   <!-- 右：ツール -->
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-    <div id="todayBadge" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);"></div>
+    <div id="todayBadge" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);" class="hide-mobile"></div>
     <button onclick="toggleTheme()" id="themeBtn" title="ライト/ダーク切替" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0">🌙</button>
     <div style="position:relative">
       <button onclick="toggleDataMenu()" id="dataMenuBtn" title="データ管理" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0">💾</button>
@@ -1154,8 +1222,12 @@ let timerElapsed = 0;
 function save() { localStorage.setItem('studyhub_v2', JSON.stringify(state)); }
 
 // ========== VERSION & CHANGELOG ==========
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.0.1';
 const CHANGELOGS = {
+  '1.0.1': {
+    title: 'v1.0.1',
+    changes: ['📱 スマホ対応（レスポンシブデザイン）']
+  },
   '1.0.0': {
     title: 'v1.0.0 正式リリース 🎉',
     changes: [
