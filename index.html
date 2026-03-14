@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyHub v1.2.1</title>
+<title>StudyHub v1.2.2</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -898,70 +898,118 @@
 
   /* ========== MOBILE ========== */
   @media (max-width: 768px) {
-    /* Header: 2行構造 */
+
+    /* Header */
     header {
-      flex-direction: column;
-      align-items: stretch;
-      padding: 10px 14px 6px !important;
+      flex-direction: column !important;
+      padding: 10px 16px 0 !important;
+      gap: 0 !important;
+    }
+    /* 上段：ロゴ + ツール */
+    header > div:first-child {
+      display: flex !important;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding-bottom: 8px;
+    }
+    .logo { font-size: 17px !important; }
+    header > div:last-child {
       gap: 6px !important;
     }
-    header > div:first-child { justify-content: space-between; }
-    nav {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 4px;
-      gap: 2px;
-      justify-content: flex-start;
-    }
-    nav button { padding: 7px 10px; font-size: 12px; white-space: nowrap; }
-    header > div:last-child { gap: 6px !important; } /* ツールはそのまま */
     .hide-mobile { display: none !important; }
 
-    /* Main padding */
-    main { padding: 14px; }
+    /* ナビ：下段フルwidth横スクロール */
+    nav {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      display: flex;
+      border-top: 1px solid var(--border);
+      padding: 0;
+      gap: 0;
+    }
+    nav::-webkit-scrollbar { display: none; }
+    nav button {
+      flex: 1;
+      min-width: max-content;
+      padding: 10px 14px;
+      font-size: 12px;
+      border-radius: 0;
+      border-bottom: 2px solid transparent;
+      font-weight: 600;
+    }
+    nav button:hover { background: none; color: var(--accent); }
+    nav button.active {
+      background: none !important;
+      color: var(--accent) !important;
+      border-bottom: 2px solid var(--accent);
+    }
 
-    /* Dashboard: 2列 */
-    .dashboard-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
-    .stat-num { font-size: 24px; }
-    .dashboard-bottom { grid-template-columns: 1fr; gap: 12px; }
+    /* Main */
+    main { padding: 16px 12px; }
 
-    /* Calendar: 縦積み */
-    .calendar-grid { grid-template-columns: 1fr; gap: 14px; }
+    /* Dashboard: 3列均等 */
+    .dashboard-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .stat-card { padding: 14px 8px; }
+    .stat-num { font-size: 20px; }
+    .stat-label { font-size: 11px; }
+    .dashboard-bottom { grid-template-columns: 1fr; gap: 10px; }
+    .card { padding: 16px; }
+    .card-title { font-size: 11px; margin-bottom: 12px; }
 
-    /* Materials: 縦積み */
+    /* Calendar */
+    .calendar-grid { grid-template-columns: 1fr; gap: 12px; }
+
+    /* Materials */
     .materials-layout { grid-template-columns: 1fr; }
     .subject-list { flex-direction: row; flex-wrap: wrap; gap: 6px; }
-    .subject-item { padding: 6px 10px; font-size: 13px; }
-    .material-cards { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+    .subject-item { padding: 5px 10px; font-size: 12px; }
+    .material-cards { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .material-card { padding: 12px; }
+    .material-icon { font-size: 22px; margin-bottom: 6px; }
+    .material-name { font-size: 13px; }
 
-    /* Timer: 縦積み */
-    .timer-layout { grid-template-columns: 1fr; gap: 14px; }
-    .timer-part { font-size: 52px; }
-    .timer-colon { font-size: 52px; }
-    .timer-btn.primary { width: 58px; height: 58px; font-size: 20px; }
+    /* Timer */
+    .timer-layout { grid-template-columns: 1fr; gap: 12px; }
+    .timer-display { padding: 24px 16px 32px !important; }
+    .timer-part { font-size: 56px; }
+    .timer-colon { font-size: 56px; }
+    .timer-btn { width: 50px; height: 50px; font-size: 18px; }
+    .timer-btn.primary { width: 60px; height: 60px; font-size: 22px; }
 
-    /* Tasks: 縦積み */
-    .tasks-layout { grid-template-columns: 1fr; gap: 12px; }
+    /* Tasks */
+    .tasks-layout { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .task-card { padding: 10px; }
+    .task-card-title { font-size: 13px; }
+    .task-status-btns { gap: 4px; }
+    .task-status-btn { font-size: 10px; padding: 4px 0; }
 
-    /* Goals: 縦積み */
-    .goals-layout { grid-template-columns: 1fr; gap: 14px; }
-    .goal-add-row { flex-wrap: wrap; }
+    /* Goals */
+    .goals-layout { grid-template-columns: 1fr; gap: 12px; }
+    .goal-add-row { flex-wrap: wrap; gap: 6px; }
     .goal-add-input[type=date] { width: 100% !important; }
+    .goal-tier { padding: 16px; }
 
-    /* Modal: フル幅 */
-    .modal { padding: 20px 16px; margin: 0 10px; }
+    /* Modal */
+    .modal { padding: 20px 16px; margin: 0 8px; max-width: calc(100vw - 16px); }
     .form-row { flex-direction: column; gap: 0; }
 
     /* Snapshot panel */
-    #snapshot-panel { width: calc(100vw - 32px); right: 8px; }
+    #snapshot-panel { width: calc(100vw - 24px); right: 12px; left: 12px; }
 
     /* Toolbar */
     .toolbar { flex-wrap: wrap; gap: 8px; }
     .search-input { width: 100%; }
 
-    /* Task status buttons */
-    .task-status-btns { gap: 4px; }
-    .task-status-btn { font-size: 10px; padding: 4px 0; }
+    /* Today task items */
+    .today-task-item { font-size: 13px; gap: 8px; }
+    .tag-pill { font-size: 10px; padding: 2px 6px; }
   }
 </style>
 </head>
@@ -971,7 +1019,7 @@
   <!-- 左：ロゴ -->
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
     <div class="logo">STUDY<span>HUB</span></div>
-    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.2.1</span>
+    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.2.2</span>
   </div>
   <!-- 中央：ナビ -->
   <nav>
@@ -1220,8 +1268,14 @@ let timerElapsed = 0;
 function save() { localStorage.setItem('studyhub_v2', JSON.stringify(state)); }
 
 // ========== VERSION & CHANGELOG ==========
-const APP_VERSION = '1.2.1';
+const APP_VERSION = '1.2.2';
 const CHANGELOGS = {
+  '1.2.2': {
+    title: 'v1.2.2',
+    changes: [
+      '📱 スマホUIを全面刷新（ナビをアンダーライン式タブに、統計カードを3列均等に）',
+    ]
+  },
   '1.2.1': {
     title: 'v1.2.1',
     changes: [
