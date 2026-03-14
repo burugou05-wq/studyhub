@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyHub v1.1.0</title>
+<title>StudyHub v1.1.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -971,7 +971,7 @@
   <!-- 左：ロゴ -->
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
     <div class="logo">STUDY<span>HUB</span></div>
-    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.1.0</span>
+    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.1.1</span>
   </div>
   <!-- 中央：ナビ -->
   <nav>
@@ -1220,8 +1220,15 @@ let timerElapsed = 0;
 function save() { localStorage.setItem('studyhub_v2', JSON.stringify(state)); }
 
 // ========== VERSION & CHANGELOG ==========
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const CHANGELOGS = {
+  '1.1.1': {
+    title: 'v1.1.1',
+    changes: [
+      '🔗 URL保存をTinyURLで自動短縮するように変更',
+      '🔄 URL復元時に旧バージョンのデータも互換対応',
+    ]
+  },
   '1.1.0': {
     title: 'v1.1.0',
     changes: [
@@ -2163,17 +2170,35 @@ function startAutoSnapshot() {
 }
 
 // ========== URL SAVE / LOAD ==========
-function saveToURL() {
+async function saveToURL() {
   try {
-    const json = JSON.stringify(state);
+    const exportState = { ...state, appVersion: APP_VERSION };
+    const json = JSON.stringify(exportState);
     const compressed = btoa(encodeURIComponent(json));
-    const url = location.origin + location.pathname + '#data=' + compressed;
+    const longUrl = location.origin + location.pathname + '#data=' + compressed;
+
+    // TinyURLで短縮
+    showToast('🔗 URL生成中…', 'var(--text2)');
+    try {
+      const res = await fetch(`https://tinyurl.com/api-create.php?url=${encodeURIComponent(longUrl)}`);
+      if (res.ok) {
+        const shortUrl = await res.text();
+        if (navigator.clipboard) {
+          await navigator.clipboard.writeText(shortUrl);
+          showToast('🔗 短縮URLをコピーしました！', 'var(--accent)');
+        } else {
+          prompt('このURLをコピーしてください：', shortUrl);
+        }
+        return;
+      }
+    } catch(_) {}
+
+    // TinyURL失敗時はそのままコピー
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(() => {
-        showToast('🔗 URLをコピーしました！ブックマークするか送ってください', 'var(--accent)');
-      });
+      await navigator.clipboard.writeText(longUrl);
+      showToast('🔗 URLをコピーしました（短縮失敗のため長いURLです）', 'var(--orange)');
     } else {
-      prompt('このURLをコピーしてください：', url);
+      prompt('このURLをコピーしてください：', longUrl);
     }
   } catch(e) {
     showToast('❌ URLの生成に失敗しました（データが大きすぎる可能性があります）', 'var(--red)');
@@ -2187,17 +2212,26 @@ function loadFromURL() {
     const json = decodeURIComponent(atob(hash.slice(6)));
     const parsed = JSON.parse(json);
     if (!parsed.tasks || !parsed.events || !parsed.materials) return;
-    if (!confirm('URLのデータを読み込みますか？\n現在のデータは上書きされます。')) {
+
+    // バージョン移行処理
+    const dataVersion = parsed.appVersion || '1.0.0';
+    if (!confirm(`URLのデータを読み込みますか？\n現在のデータは上書きされます。\n(保存時のバージョン: ${dataVersion})`)) {
       history.replaceState(null, '', location.pathname);
       return;
     }
+    // 旧バージョンのデータに足りないフィールドを補完
+    if (!parsed.goals) parsed.goals = { long: [], mid: [], short: [] };
+    if (!parsed.diary) parsed.diary = {};
+    if (!parsed.studyLog) parsed.studyLog = [];
+    parsed.appVersion = APP_VERSION;
+
     state = parsed;
     save();
     renderDashboard();
     renderLog();
     populateTimerSubjects();
     updateTimerDisplay();
-    history.replaceState(null, '', location.pathname); // URLからhashを除去
+    history.replaceState(null, '', location.pathname);
     showToast('✅ URLからデータを復元しました', 'var(--green)');
   } catch(e) {
     history.replaceState(null, '', location.pathname);
