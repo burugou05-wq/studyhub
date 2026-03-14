@@ -2625,13 +2625,46 @@ function closeTutorial() {
   if (el) { el.style.pointerEvents='none'; el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(()=>{ if(el.parentNode)el.parentNode.removeChild(el); },320); }
 }
 
+function toggleMobileSaveMenu() {
+  const menu = document.getElementById('mobile-save-menu');
+  if (!menu) return;
+  const isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    setTimeout(() => {
+      document.addEventListener('click', function closeMobileMenu(e) {
+        const menu = document.getElementById('mobile-save-menu');
+        const btn = document.querySelector('#mobile-fab .fab-btn.primary');
+        if (menu && !menu.contains(e.target) && e.target !== btn && !btn?.contains(e.target)) {
+          menu.style.display = 'none';
+          document.removeEventListener('click', closeMobileMenu);
+        }
+      });
+    }, 100);
+  }
+}
+
+function closeMobileSaveMenu() {
+  const menu = document.getElementById('mobile-save-menu');
+  if (menu) menu.style.display = 'none';
+}
+
 init();
 </script>
 
 <!-- スマホ用フローティングバー -->
 <div id="mobile-fab">
   <button class="fab-btn" onclick="toggleTheme()" id="themeBtnFab" title="テーマ切替">🌙</button>
-  <button class="fab-btn primary" onclick="toggleDataMenu()" title="データ管理">💾</button>
+  <button class="fab-btn primary" onclick="toggleMobileSaveMenu()" title="データ管理">💾</button>
+</div>
+
+<!-- スマホ用保存メニュー -->
+<div id="mobile-save-menu" style="display:none;position:fixed;bottom:80px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.3);z-index:300;padding:8px;min-width:200px;animation:fadeIn 0.15s ease;">
+  <button onclick="toggleSnapshotPanel();closeMobileSaveMenu()" style="width:100%;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--text);padding:11px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-family:'Noto Sans JP',sans-serif;text-align:left;">🕐 自動保存を見る</button>
+  <button onclick="exportData();closeMobileSaveMenu()" style="width:100%;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--text);padding:11px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-family:'Noto Sans JP',sans-serif;text-align:left;">⬇ バックアップ保存</button>
+  <button onclick="document.getElementById('importFile').click();closeMobileSaveMenu()" style="width:100%;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--text);padding:11px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-family:'Noto Sans JP',sans-serif;text-align:left;">⬆ バックアップ復元</button>
+  <div style="border-top:1px solid var(--border);margin:4px 0"></div>
+  <button onclick="saveToURL();closeMobileSaveMenu()" style="width:100%;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--text);padding:11px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-family:'Noto Sans JP',sans-serif;text-align:left;">🔗 URLで保存・共有</button>
 </div>
 
 </body>
