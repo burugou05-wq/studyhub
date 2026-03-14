@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyHub v1.2.2</title>
+<title>StudyHub v1.2.3</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -1010,6 +1010,102 @@
     /* Today task items */
     .today-task-item { font-size: 13px; gap: 8px; }
     .tag-pill { font-size: 10px; padding: 2px 6px; }
+
+    /* ヘッダーのツールボタンをスマホで非表示 */
+    #themeBtn, #dataMenuBtn { display: none !important; }
+    #data-menu { top: auto !important; bottom: 70px !important; right: 12px !important; }
+
+    /* メインの下に固定バーの余白 */
+    main { padding-bottom: 80px; }
+
+    /* フローティングバー */
+    #mobile-fab {
+      display: flex !important;
+    }
+  }
+
+  /* フローティングバー（スマホのみ表示） */
+  #mobile-fab {
+    display: none;
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    gap: 10px;
+    z-index: 200;
+    align-items: center;
+  }
+  .fab-btn {
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .fab-btn:active { transform: scale(0.93); }
+  .fab-btn.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    width: 52px; height: 52px; font-size: 20px;
+  }
+
+  /* 使い方セクション */
+  .howto-section {
+    margin-top: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+  }
+  .howto-title {
+    font-size: 13px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text3); margin-bottom: 14px;
+  }
+  .howto-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .howto-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s;
+  }
+  .howto-item:hover { border-color: var(--accent); }
+  .howto-item-icon { font-size: 22px; margin-bottom: 4px; }
+  .howto-item-label { font-size: 11px; color: var(--text2); font-weight: 500; }
+  .howto-btn {
+    width: 100%;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    color: var(--text2);
+    font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .howto-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .howto-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .howto-item { padding: 10px 6px; }
+    .howto-item-icon { font-size: 18px; }
+    .howto-item-label { font-size: 10px; }
   }
 </style>
 </head>
@@ -1019,7 +1115,7 @@
   <!-- 左：ロゴ -->
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
     <div class="logo">STUDY<span>HUB</span></div>
-    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.2.2</span>
+    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.2.3</span>
   </div>
   <!-- 中央：ナビ -->
   <nav>
@@ -1075,6 +1171,38 @@
         <div class="card-title">今日の予定</div>
         <div id="dashboard-events"></div>
       </div>
+    </div>
+
+    <!-- 使い方セクション -->
+    <div class="howto-section">
+      <div class="howto-title">使い方ガイド</div>
+      <div class="howto-grid">
+        <div class="howto-item" onclick="switchTabByName('calendar')">
+          <div class="howto-item-icon">📅</div>
+          <div class="howto-item-label">予定表</div>
+        </div>
+        <div class="howto-item" onclick="switchTabByName('tasks')">
+          <div class="howto-item-icon">✅</div>
+          <div class="howto-item-label">タスク</div>
+        </div>
+        <div class="howto-item" onclick="switchTabByName('timer')">
+          <div class="howto-item-icon">⏱</div>
+          <div class="howto-item-label">タイマー</div>
+        </div>
+        <div class="howto-item" onclick="switchTabByName('materials')">
+          <div class="howto-item-icon">📚</div>
+          <div class="howto-item-label">教材</div>
+        </div>
+        <div class="howto-item" onclick="switchTabByName('goals')">
+          <div class="howto-item-icon">🎯</div>
+          <div class="howto-item-label">目標</div>
+        </div>
+        <div class="howto-item" onclick="showTutorial()">
+          <div class="howto-item-icon">📖</div>
+          <div class="howto-item-label">チュートリアル</div>
+        </div>
+      </div>
+      <button class="howto-btn" onclick="showTutorial()">📖 使い方チュートリアルを見る</button>
     </div>
   </div>
 
@@ -1268,8 +1396,16 @@ let timerElapsed = 0;
 function save() { localStorage.setItem('studyhub_v2', JSON.stringify(state)); }
 
 // ========== VERSION & CHANGELOG ==========
-const APP_VERSION = '1.2.2';
+const APP_VERSION = '1.2.3';
 const CHANGELOGS = {
+  '1.2.3': {
+    title: 'v1.2.3',
+    changes: [
+      '📖 ダッシュボード下部に「使い方ガイド」セクションを追加',
+      '📱 スマホ版：🌙と💾を画面右下のフローティングボタンに移動',
+      '🔄 チュートリアルをいつでも呼び出せるように復活',
+    ]
+  },
   '1.2.2': {
     title: 'v1.2.2',
     changes: [
@@ -1328,7 +1464,10 @@ const CHANGELOGS = {
 
 function toggleTheme() {
   const isLight = document.body.classList.toggle('light-mode');
-  document.getElementById('themeBtn').textContent = isLight ? '☀️' : '🌙';
+  const icon = isLight ? '☀️' : '🌙';
+  document.getElementById('themeBtn').textContent = icon;
+  const fab = document.getElementById('themeBtnFab');
+  if (fab) fab.textContent = icon;
   localStorage.setItem('studyhub_theme', isLight ? 'light' : 'dark');
 }
 
@@ -1352,12 +1491,14 @@ function init() {
   // テーマ：デフォルトはライトモード
   const savedTheme = localStorage.getItem('studyhub_theme');
   if (savedTheme === 'dark') {
-    // 明示的にダークを選んでいる場合のみダーク
     document.getElementById('themeBtn').textContent = '🌙';
+    const fab = document.getElementById('themeBtnFab');
+    if (fab) fab.textContent = '🌙';
   } else {
-    // デフォルト or lightはライトモード
     document.body.classList.add('light-mode');
     document.getElementById('themeBtn').textContent = '☀️';
+    const fab = document.getElementById('themeBtnFab');
+    if (fab) fab.textContent = '☀️';
   }
   renderDashboard();
   populateTimerSubjects();
@@ -2424,13 +2565,74 @@ function importData(event) {
 
 function showToast(msg, color) {
   const el = document.createElement('div');
-  el.style.cssText = `position:fixed;bottom:28px;right:28px;background:${color};color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;z-index:999;font-family:'Noto Sans JP',sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:opacity 0.4s;`;
+  el.style.cssText = `position:fixed;bottom:80px;right:16px;background:${color};color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;z-index:999;font-family:'Noto Sans JP',sans-serif;box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:opacity 0.4s;`;
   el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 2500);
 }
 
+function switchTabByName(id) {
+  const btn = [...document.querySelectorAll('nav button')].find(b => b.getAttribute('onclick')?.includes(`'${id}'`));
+  if (btn) { document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active')); document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active')); document.getElementById('tab-'+id).classList.add('active'); btn.classList.add('active'); if(id==='dashboard')renderDashboard(); if(id==='calendar')renderCalendar(); if(id==='materials')renderMaterials(); if(id==='tasks')renderTasks(); if(id==='goals')renderGoals(); }
+}
+
+// ========== TUTORIAL ==========
+const TUTORIAL_STEPS = [
+  { icon:'🏠', title:'ダッシュボード', desc:'今日の勉強時間・完了タスク・連続記録を確認できます。このページ下部の「使い方ガイド」から各機能にアクセスできます。' },
+  { icon:'📅', title:'予定表', desc:'勉強の予定をカレンダーで管理。当日になった予定は自動でタスクに変換されます。' },
+  { icon:'✅', title:'タスク', desc:'「進行中」と「完了」の2列で管理します。カード下のボタンでステータスを変更できます。' },
+  { icon:'⏱', title:'タイマー', desc:'ストップウォッチかタイマーを選んで勉強時間を計測。終了すると勉強ログに自動記録されます。' },
+  { icon:'💾', title:'データ保存', desc:'右上の💾ボタンからバックアップ・復元・URL共有ができます。30分ごとに自動スナップショットも保存されます。' },
+];
+let tutorialStep = 0;
+
+function showTutorial() {
+  tutorialStep = 0;
+  const overlay = document.createElement('div');
+  overlay.className = 'tutorial-overlay';
+  overlay.id = 'tutorial-overlay';
+  document.body.appendChild(overlay);
+  renderTutorialStep();
+}
+
+function renderTutorialStep() {
+  const overlay = document.getElementById('tutorial-overlay');
+  if (!overlay) return;
+  const step = TUTORIAL_STEPS[tutorialStep];
+  const total = TUTORIAL_STEPS.length;
+  const isLast = tutorialStep === total - 1;
+  const dots = TUTORIAL_STEPS.map((_,i) => `<div class="tutorial-dot ${i<tutorialStep?'done':i===tutorialStep?'active':''}"></div>`).join('');
+  overlay.innerHTML = `
+    <div class="tutorial-box">
+      <div class="tutorial-icon">${step.icon}</div>
+      <div class="tutorial-step-num">STEP ${tutorialStep+1} / ${total}</div>
+      <div class="tutorial-title">${step.title}</div>
+      <div class="tutorial-desc">${step.desc}</div>
+      <div class="tutorial-progress">${dots}</div>
+      <div class="tutorial-actions">
+        <button class="tutorial-skip" onclick="closeTutorial()">閉じる</button>
+        ${isLast ? `<button class="tutorial-finish" onclick="closeTutorial()">完了 🎉</button>` : `<button class="tutorial-next" onclick="nextTutorialStep()">次へ →</button>`}
+      </div>
+    </div>`;
+}
+
+function nextTutorialStep() {
+  if (tutorialStep < TUTORIAL_STEPS.length - 1) { tutorialStep++; renderTutorialStep(); }
+}
+
+function closeTutorial() {
+  const el = document.getElementById('tutorial-overlay');
+  if (el) { el.style.pointerEvents='none'; el.style.opacity='0'; el.style.transition='opacity 0.3s'; setTimeout(()=>{ if(el.parentNode)el.parentNode.removeChild(el); },320); }
+}
+
 init();
 </script>
+
+<!-- スマホ用フローティングバー -->
+<div id="mobile-fab">
+  <button class="fab-btn" onclick="toggleTheme()" id="themeBtnFab" title="テーマ切替">🌙</button>
+  <button class="fab-btn primary" onclick="toggleDataMenu()" title="データ管理">💾</button>
+</div>
+
 </body>
 </html>
