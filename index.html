@@ -2948,24 +2948,35 @@ function setSyncStatus(status) {
 
 function startSync(uid) {
   dbRef = ref(db, `users/${uid}/state`);
-  // Firebaseからデータを受信（リアルタイム監視）
+  let isFirstLoad = true;
   onValue(dbRef, (snapshot) => {
-    if (isSyncing) return; // 自分が書き込み中なら無視
     const data = snapshot.val();
-    if (data) {
-      // ローカルより新しければ上書き
+    if (!data) { setSyncStatus('synced'); return; }
+
+    if (isFirstLoad) {
+      // 初回：FirebaseとlocalStorageの新しい方を採用
+      isFirstLoad = false;
       const remoteTime = data._updatedAt || 0;
       const localTime = (window.state && window.state._updatedAt) || 0;
-      if (remoteTime > localTime) {
-        isSyncing = true; // 受信中はsaveをブロック
+      if (remoteTime >= localTime) {
+        isSyncing = true;
         window.state = data;
         localStorage.setItem('studyhub_v2', JSON.stringify(data));
         if (window.renderDashboard) window.renderDashboard();
         if (window.renderLog) window.renderLog();
         if (window.updateTimerDisplay) window.updateTimerDisplay();
-        setSyncStatus('synced');
-        setTimeout(() => { isSyncing = false; }, 2000); // 2秒後に解除
+        setTimeout(() => { isSyncing = false; }, 2000);
       }
+    } else {
+      // 2回目以降：他端末からの変更 → 書き込み中でなければ常に反映
+      if (isSyncing) return;
+      isSyncing = true;
+      window.state = data;
+      localStorage.setItem('studyhub_v2', JSON.stringify(data));
+      if (window.renderDashboard) window.renderDashboard();
+      if (window.renderLog) window.renderLog();
+      if (window.updateTimerDisplay) window.updateTimerDisplay();
+      setTimeout(() => { isSyncing = false; }, 2000);
     }
     setSyncStatus('synced');
   });
