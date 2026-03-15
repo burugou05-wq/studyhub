@@ -3,8 +3,78 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>StudyHub v1.3.0</title>
+<title>StudyHub v2.0.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+  import { getDatabase, ref, onValue, set, off } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyD7qEmlPynkP_RFv0aDAmqEKEIbKKtPp4U",
+    authDomain: "studyhub-63832.firebaseapp.com",
+    databaseURL: "https://studyhub-63832-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "studyhub-63832",
+    storageBucket: "studyhub-63832.firebasestorage.app",
+    messagingSenderId: "53272438516",
+    appId: "1:53272438516:web:c794c6d1179d99b6ace0a1"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getDatabase(app);
+  let currentUid = null;
+  let dbRef = null;
+  let syncTimeout = null;
+  let isReceiving = false; // 外部からのデータ受信中フラグ（ループ防止）
+
+  // Firebaseにデータを書き込む（debounce 1秒）
+  window.fbSave = function(stateData) {
+    if (!currentUid) return;
+    if (isReceiving) return; // 受信中は書き込まない
+    clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(() => {
+      set(ref(db, 'users/' + currentUid + '/state'), stateData);
+    }, 1000);
+  };
+
+  // ログイン状態を監視
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      currentUid = user.uid;
+      window._fbUser = user;
+      // DBをリアルタイム監視（他端末の変更を自動反映）
+      const sr = ref(db, 'users/' + user.uid + '/state');
+      dbRef = sr;
+      onValue(sr, (snapshot) => {
+        const data = snapshot.val();
+        isReceiving = true;
+        if (window.onFirebaseData) window.onFirebaseData(data);
+        setTimeout(() => { isReceiving = false; }, 1500); // 1.5秒後に解除
+      });
+      if (window.onAuthLogin) window.onAuthLogin(user);
+    } else {
+      currentUid = null;
+      window._fbUser = null;
+      if (window.onAuthLogout) window.onAuthLogout();
+    }
+  });
+
+  window.fbSignInGoogle = async () => {
+    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+    catch(e) { if (window.onAuthError) window.onAuthError(e.code); }
+  };
+  window.fbSignInEmail = async (email, pass) => {
+    try { await signInWithEmailAndPassword(auth, email, pass); }
+    catch(e) { if (window.onAuthError) window.onAuthError(e.code); }
+  };
+  window.fbRegister = async (email, pass) => {
+    try { await createUserWithEmailAndPassword(auth, email, pass); }
+    catch(e) { if (window.onAuthError) window.onAuthError(e.code); }
+  };
+  window.fbSignOut = async () => { await signOut(auth); };
+</script>
 <style>
   :root {
     --bg: #0d0f14;
@@ -1109,6 +1179,99 @@
     .howto-item-icon { font-size: 18px; }
     .howto-item-label { font-size: 10px; }
   }
+
+  /* ========== AUTH ========== */
+  .auth-overlay {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .auth-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 36px 40px;
+    width: 100%; max-width: 400px;
+    box-shadow: var(--shadow);
+    animation: slideUp 0.35s ease;
+  }
+  .auth-logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px; font-weight: 700;
+    color: var(--accent); letter-spacing: 3px;
+    text-align: center; margin-bottom: 6px;
+  }
+  .auth-logo span { color: var(--text2); font-weight: 400; }
+  .auth-subtitle { text-align: center; font-size: 13px; color: var(--text2); margin-bottom: 28px; }
+  .auth-tabs {
+    display: flex; gap: 0; margin-bottom: 24px;
+    background: var(--surface2); border-radius: 10px; padding: 4px;
+  }
+  .auth-tab {
+    flex: 1; padding: 8px; border: none; border-radius: 8px;
+    background: none; color: var(--text2); font-size: 13px;
+    font-family: 'Noto Sans JP', sans-serif; cursor: pointer;
+    font-weight: 500; transition: all 0.2s;
+  }
+  .auth-tab.active { background: var(--surface); color: var(--text); font-weight: 700; box-shadow: 0 1px 4px rgba(0,0,0,0.15); }
+  .auth-input {
+    width: 100%; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; color: var(--text); font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif; margin-bottom: 10px;
+    transition: border-color 0.2s;
+  }
+  .auth-input:focus { outline: none; border-color: var(--accent); }
+  .auth-btn {
+    width: 100%; padding: 13px; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 700;
+    font-family: 'Noto Sans JP', sans-serif; cursor: pointer;
+    transition: opacity 0.2s; margin-bottom: 10px;
+  }
+  .auth-btn.primary { background: var(--accent); color: #fff; }
+  .auth-btn.google {
+    background: var(--surface2); color: var(--text);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .auth-btn:hover { opacity: 0.85; }
+  .auth-divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 14px 0; color: var(--text3); font-size: 12px;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+  .auth-error {
+    background: rgba(240,91,91,0.1); border: 1px solid rgba(240,91,91,0.3);
+    border-radius: 8px; padding: 10px 14px;
+    color: var(--red); font-size: 13px; margin-bottom: 12px; display: none;
+  }
+  .auth-user-bar {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text2);
+  }
+  .auth-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .auth-logout-btn {
+    background: none; border: 1px solid var(--border);
+    border-radius: 6px; padding: 3px 8px; font-size: 11px;
+    color: var(--text3); cursor: pointer; font-family: 'Noto Sans JP', sans-serif;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .auth-logout-btn:hover { border-color: var(--red); color: var(--red); }
+  .sync-status {
+    font-size: 10px; color: var(--text3);
+    font-family: 'Space Mono', monospace;
+  }
+  .sync-status.syncing { color: var(--orange); }
+  .sync-status.synced { color: var(--green); }
 </style>
 </head>
 <body>
@@ -1117,7 +1280,7 @@
   <!-- 左：ロゴ -->
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
     <div class="logo">STUDY<span>HUB</span></div>
-    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v1.3.0</span>
+    <span onclick="showVersionHistory()" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;letter-spacing:1px;cursor:pointer;transition:border-color 0.15s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">v2.0.0</span>
   </div>
   <!-- 中央：ナビ -->
   <nav>
@@ -1131,6 +1294,13 @@
   <!-- 右：ツール -->
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
     <div id="todayBadge" style="font-family:'Space Mono',monospace;font-size:11px;color:var(--text3);" class="hide-mobile"></div>
+    <!-- ユーザーバー -->
+    <div id="userBar" class="auth-user-bar" style="display:none">
+      <div class="auth-avatar" id="userAvatar">?</div>
+      <span id="userEmail" class="hide-mobile" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <span class="sync-status" id="syncStatus">●</span>
+      <button class="auth-logout-btn" onclick="signOut()">ログアウト</button>
+    </div>
     <button onclick="toggleTheme()" id="themeBtn" title="ライト/ダーク切替" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0">🌙</button>
     <div style="position:relative">
       <button onclick="toggleDataMenu()" id="dataMenuBtn" title="データ管理" style="background:var(--surface2);border:1px solid var(--border);color:var(--text2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;flex-shrink:0">💾</button>
@@ -1401,12 +1571,25 @@ function save() {
   if (!state.studyHistory) state.studyHistory = {};
   const todayStr = new Date().toISOString().split('T')[0];
   if (state.todaySeconds > 0) state.studyHistory[todayStr] = state.todaySeconds;
+  state._updatedAt = Date.now();
   localStorage.setItem('studyhub_v2', JSON.stringify(state));
+  // Firebase連携（モジュール側に委譲）
+  if (window._firebaseSaveReady && typeof window._firebaseSave === 'function') {
+    window._firebaseSave();
+  }
 }
 
 // ========== VERSION & CHANGELOG ==========
-const APP_VERSION = '1.3.0';
+const APP_VERSION = '2.0.0';
 const CHANGELOGS = {
+  '2.0.0': {
+    title: 'v2.0.0',
+    changes: [
+      '🔐 Firebase連携：Googleアカウント / メールでログイン',
+      '☁️ クラウド同期：複数端末でデータをリアルタイム共有',
+      '🛡️ アカウントごとにデータを安全に管理',
+    ]
+  },
   '1.3.0': {
     title: 'v1.3.0',
     changes: [
@@ -2676,6 +2859,199 @@ function closeMobileSaveMenu() {
 }
 
 init();
+</script>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut as fbSignOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import { getDatabase, ref, set, onValue, off } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD7qEmlPynkP_RFv0aDAmqEKEIbKKtPp4U",
+  authDomain: "studyhub-63832.firebaseapp.com",
+  databaseURL: "https://studyhub-63832-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "studyhub-63832",
+  storageBucket: "studyhub-63832.firebasestorage.app",
+  messagingSenderId: "53272438516",
+  appId: "1:53272438516:web:c794c6d1179d99b6ace0a1"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+const googleProvider = new GoogleAuthProvider();
+let currentUser = null;
+let dbRef = null;
+let isSyncing = false;
+
+// ========== AUTH STATE ==========
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    showApp(user);
+    startSync(user.uid);
+  } else {
+    currentUser = null;
+    stopSync();
+    showAuthScreen();
+  }
+});
+
+function showApp(user) {
+  // ログイン画面を非表示
+  const authOverlay = document.getElementById('auth-overlay');
+  if (authOverlay) authOverlay.remove();
+
+  // ユーザーバーを表示
+  document.getElementById('userBar').style.display = 'flex';
+  const initials = (user.displayName || user.email || '?')[0].toUpperCase();
+  document.getElementById('userAvatar').textContent = initials;
+  document.getElementById('userEmail').textContent = user.displayName || user.email;
+}
+
+function showAuthScreen() {
+  document.getElementById('userBar').style.display = 'none';
+  // すでに表示中なら何もしない
+  if (document.getElementById('auth-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'auth-overlay';
+  overlay.id = 'auth-overlay';
+  overlay.innerHTML = `
+    <div class="auth-box">
+      <div class="auth-logo">STUDY<span>HUB</span></div>
+      <div class="auth-subtitle">ログインして学習データを同期</div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">ログイン</button>
+        <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">新規登録</button>
+      </div>
+      <div id="auth-error" class="auth-error"></div>
+      <input class="auth-input" id="auth-email" type="email" placeholder="メールアドレス">
+      <input class="auth-input" id="auth-password" type="password" placeholder="パスワード（6文字以上）">
+      <button class="auth-btn primary" id="auth-submit-btn" onclick="submitAuth()">ログイン</button>
+      <div class="auth-divider">または</div>
+      <button class="auth-btn google" onclick="loginWithGoogle()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Googleでログイン
+      </button>
+      <div style="text-align:center;margin-top:16px;font-size:12px;color:var(--text3)">
+        データはあなたのアカウントに安全に保存されます
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+// Auth tab switch
+window.switchAuthTab = function(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  document.getElementById('auth-submit-btn').textContent = tab === 'login' ? 'ログイン' : '新規登録';
+  document.getElementById('auth-submit-btn').onclick = tab === 'login'
+    ? () => window.submitAuth('login')
+    : () => window.submitAuth('signup');
+  document.getElementById('auth-error').style.display = 'none';
+};
+
+window.submitAuth = async function(mode) {
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.style.display = 'none';
+  if (!email || !password) { showAuthError('メールアドレスとパスワードを入力してください'); return; }
+  try {
+    if (mode === 'signup') {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
+  } catch(e) {
+    const msgs = {
+      'auth/email-already-in-use': 'このメールアドレスはすでに使われています',
+      'auth/invalid-email': 'メールアドレスの形式が正しくありません',
+      'auth/weak-password': 'パスワードは6文字以上にしてください',
+      'auth/user-not-found': 'アカウントが見つかりません',
+      'auth/wrong-password': 'パスワードが間違っています',
+      'auth/invalid-credential': 'メールアドレスまたはパスワードが間違っています',
+    };
+    showAuthError(msgs[e.code] || 'エラーが発生しました: ' + e.message);
+  }
+};
+
+window.loginWithGoogle = async function() {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch(e) {
+    showAuthError('Googleログインに失敗しました');
+  }
+};
+
+window.signOut = async function() {
+  if (!confirm('ログアウトしますか？')) return;
+  await fbSignOut(auth);
+};
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+// ========== FIREBASE SYNC ==========
+function setSyncStatus(status) {
+  const el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.className = 'sync-status ' + status;
+  el.textContent = status === 'syncing' ? '↑' : status === 'synced' ? '✓' : '●';
+  el.title = status === 'syncing' ? '同期中…' : status === 'synced' ? '同期済み' : 'オフライン';
+}
+
+function startSync(uid) {
+  dbRef = ref(db, `users/${uid}/state`);
+  // Firebaseからデータを受信
+  onValue(dbRef, (snapshot) => {
+    if (isSyncing) return;
+    const data = snapshot.val();
+    if (data) {
+      // ローカルより新しければ上書き
+      const remoteTime = data._updatedAt || 0;
+      const localTime = state._updatedAt || 0;
+      if (remoteTime > localTime) {
+        state = data;
+        localStorage.setItem('studyhub_v2', JSON.stringify(state));
+        renderDashboard();
+        renderLog();
+        updateTimerDisplay();
+        setSyncStatus('synced');
+      }
+    }
+    setSyncStatus('synced');
+  });
+}
+
+function stopSync() {
+  if (dbRef) { off(dbRef); dbRef = null; }
+}
+
+// saveをオーバーライドしてFirebaseにも書き込む
+const _originalSave = window._saveFn || null;
+window._firebaseSave = async function() {
+  // Firebaseに保存（localStorage側はsave()が担当）
+  if (currentUser && dbRef) {
+    isSyncing = true;
+    setSyncStatus('syncing');
+    try {
+      await set(dbRef, state);
+      setSyncStatus('synced');
+    } catch(e) {
+      setSyncStatus('offline');
+    }
+    isSyncing = false;
+  }
+};
+
+// グローバルのsave関数をFirebase対応版に差し替え
+// （モジュール外から呼べるようwindowに登録）
+window._firebaseSaveReady = true;
 </script>
 
 <!-- スマホ用フローティングバー -->
