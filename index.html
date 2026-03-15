@@ -2788,6 +2788,16 @@ function closeMobileSaveMenu() {
   if (menu) menu.style.display = 'none';
 }
 
+// ========== MODULE連携用: windowへの公開 ==========
+// Firebase moduleスクリプトはスコープが分離されているためwindow経由でアクセス
+Object.defineProperty(window, 'state', {
+  get: () => state,
+  set: (v) => { state = v; },
+});
+window.renderDashboard = renderDashboard;
+window.renderLog = renderLog;
+window.updateTimerDisplay = updateTimerDisplay;
+
 init();
 </script>
 
@@ -2945,14 +2955,14 @@ function startSync(uid) {
     if (data) {
       // ローカルより新しければ上書き
       const remoteTime = data._updatedAt || 0;
-      const localTime = state._updatedAt || 0;
+      const localTime = (window.state && window.state._updatedAt) || 0;
       if (remoteTime > localTime) {
         isSyncing = true; // 受信中はsaveをブロック
-        state = data;
-        localStorage.setItem('studyhub_v2', JSON.stringify(state));
-        renderDashboard();
-        renderLog();
-        updateTimerDisplay();
+        window.state = data;
+        localStorage.setItem('studyhub_v2', JSON.stringify(data));
+        if (window.renderDashboard) window.renderDashboard();
+        if (window.renderLog) window.renderLog();
+        if (window.updateTimerDisplay) window.updateTimerDisplay();
         setSyncStatus('synced');
         setTimeout(() => { isSyncing = false; }, 2000); // 2秒後に解除
       }
@@ -2973,7 +2983,7 @@ window._firebaseSave = async function() {
     isSyncing = true;
     setSyncStatus('syncing');
     try {
-      await set(dbRef, state);
+      await set(dbRef, window.state);
       setSyncStatus('synced');
     } catch(e) {
       setSyncStatus('offline');
