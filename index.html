@@ -5,76 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>StudyHub v2.0.0</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<!-- Firebase SDK -->
-<script type="module">
-  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-  import { getDatabase, ref, onValue, set, off } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyD7qEmlPynkP_RFv0aDAmqEKEIbKKtPp4U",
-    authDomain: "studyhub-63832.firebaseapp.com",
-    databaseURL: "https://studyhub-63832-default-rtdb.asia-southeast1.firebasedatabase.app",
-    projectId: "studyhub-63832",
-    storageBucket: "studyhub-63832.firebasestorage.app",
-    messagingSenderId: "53272438516",
-    appId: "1:53272438516:web:c794c6d1179d99b6ace0a1"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getDatabase(app);
-  let currentUid = null;
-  let dbRef = null;
-  let syncTimeout = null;
-  let isReceiving = false; // 外部からのデータ受信中フラグ（ループ防止）
-
-  // Firebaseにデータを書き込む（debounce 1秒）
-  window.fbSave = function(stateData) {
-    if (!currentUid) return;
-    if (isReceiving) return; // 受信中は書き込まない
-    clearTimeout(syncTimeout);
-    syncTimeout = setTimeout(() => {
-      set(ref(db, 'users/' + currentUid + '/state'), stateData);
-    }, 1000);
-  };
-
-  // ログイン状態を監視
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      currentUid = user.uid;
-      window._fbUser = user;
-      // DBをリアルタイム監視（他端末の変更を自動反映）
-      const sr = ref(db, 'users/' + user.uid + '/state');
-      dbRef = sr;
-      onValue(sr, (snapshot) => {
-        const data = snapshot.val();
-        isReceiving = true;
-        if (window.onFirebaseData) window.onFirebaseData(data);
-        setTimeout(() => { isReceiving = false; }, 1500); // 1.5秒後に解除
-      });
-      if (window.onAuthLogin) window.onAuthLogin(user);
-    } else {
-      currentUid = null;
-      window._fbUser = null;
-      if (window.onAuthLogout) window.onAuthLogout();
-    }
-  });
-
-  window.fbSignInGoogle = async () => {
-    try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-    catch(e) { if (window.onAuthError) window.onAuthError(e.code); }
-  };
-  window.fbSignInEmail = async (email, pass) => {
-    try { await signInWithEmailAndPassword(auth, email, pass); }
-    catch(e) { if (window.onAuthError) window.onAuthError(e.code); }
-  };
-  window.fbRegister = async (email, pass) => {
-    try { await createUserWithEmailAndPassword(auth, email, pass); }
-    catch(e) { if (window.onAuthError) window.onAuthError(e.code); }
-  };
-  window.fbSignOut = async () => { await signOut(auth); };
-</script>
 <style>
   :root {
     --bg: #0d0f14;
@@ -1573,8 +1503,8 @@ function save() {
   if (state.todaySeconds > 0) state.studyHistory[todayStr] = state.todaySeconds;
   state._updatedAt = Date.now();
   localStorage.setItem('studyhub_v2', JSON.stringify(state));
-  // Firebase連携（モジュール側に委譲）
-  if (window._firebaseSaveReady && typeof window._firebaseSave === 'function') {
+  // Firebase連携（受信中はスキップしてループ防止）
+  if (window._firebaseSaveReady && typeof window._firebaseSave === 'function' && !window._isSyncing) {
     window._firebaseSave();
   }
 }
@@ -2884,6 +2814,7 @@ const googleProvider = new GoogleAuthProvider();
 let currentUser = null;
 let dbRef = null;
 let isSyncing = false;
+Object.defineProperty(window, '_isSyncing', { get: () => isSyncing });
 
 // ========== AUTH STATE ==========
 onAuthStateChanged(auth, (user) => {
@@ -3007,21 +2938,23 @@ function setSyncStatus(status) {
 
 function startSync(uid) {
   dbRef = ref(db, `users/${uid}/state`);
-  // Firebaseからデータを受信
+  // Firebaseからデータを受信（リアルタイム監視）
   onValue(dbRef, (snapshot) => {
-    if (isSyncing) return;
+    if (isSyncing) return; // 自分が書き込み中なら無視
     const data = snapshot.val();
     if (data) {
       // ローカルより新しければ上書き
       const remoteTime = data._updatedAt || 0;
       const localTime = state._updatedAt || 0;
       if (remoteTime > localTime) {
+        isSyncing = true; // 受信中はsaveをブロック
         state = data;
         localStorage.setItem('studyhub_v2', JSON.stringify(state));
         renderDashboard();
         renderLog();
         updateTimerDisplay();
         setSyncStatus('synced');
+        setTimeout(() => { isSyncing = false; }, 2000); // 2秒後に解除
       }
     }
     setSyncStatus('synced');
